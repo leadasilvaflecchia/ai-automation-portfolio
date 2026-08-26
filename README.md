@@ -7,10 +7,16 @@ Flujos de automatización e IA con n8n, LLMs y APIs. Incluye distribución de le
 ## 📹 Video Walkthrough & Demo
 👉 **[Ver Demo en Loom](https://www.loom.com/share/ab6296c05d6e4937ae9e429e08079945)**
 
-## ⚙️ Flujos y Blueprints (n8n)
-* 📥 **Descargar Workflow:** Puedes descargar e importar directamente el blueprint del flujo desde el archivo [`workflow.json`](./workflow.json) en tu propia instancia de n8n.
-* 🎥 **Visualización:** Para ver el funcionamiento completo paso a paso sin credenciales de acceso, consulta el **[Vídeo en Loom](TU_LINK_DE_LOOM)**.
+## ⚙️ Workflows de n8n (Blueprints JSON)
 
+* 📥 [1 - Recepción de Leads](<./1- Recepción de Leads SPP.json>)
+* 📥 [2 - Selección y redacción de correos](<./2- Selección y redacción de correos.json>)
+* 📥 [3 - Seguimiento correos proveedores](<./3- Seguimiento correos proveedores.json>)
+
+---
+
+## 📄 Memoria Técnica
+* 📘 [Ver Memoria del TFM (PDF)](<./MemoraTFM_Leandro_Da_Silva.pdf>)
 ---
 
 ## 🎯 Objetivo del Proyecto
@@ -25,4 +31,3 @@ Automatizar el proceso de creación de ofertas, aumentando la capacidad operativ
 * **Arquitectura:** Webhooks, REST APIs, JSON / JavaScript
 
 ---
-📄 **Documentación técnica:** Consulta la memoria completa en [`MemoraTFM_Leandro_Da_Silva.pdf`](./MemoraTFM_Leandro_Da_Silva.pdf).
