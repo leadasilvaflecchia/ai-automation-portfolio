@@ -7,6 +7,10 @@ Flujos de automatización e IA con n8n, LLMs y APIs. Incluye distribución de le
 ## 📹 Video Walkthrough & Demo
 👉 **[Ver Demo en Loom](https://www.loom.com/share/ab6296c05d6e4937ae9e429e08079945)**
 
+## ⚙️ Flujos y Blueprints (n8n)
+* 📥 **Descargar Workflow:** Puedes descargar e importar directamente el blueprint del flujo desde el archivo [`workflow.json`](./workflow.json) en tu propia instancia de n8n.
+* 🎥 **Visualización:** Para ver el funcionamiento completo paso a paso sin credenciales de acceso, consulta el **[Vídeo en Loom](TU_LINK_DE_LOOM)**.
+
 ---
 
 ## 🎯 Objetivo del Proyecto
