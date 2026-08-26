@@ -5,7 +5,7 @@ Flujos de automatización e IA con n8n, LLMs y APIs. Incluye distribución de le
 ---
 
 ## 📹 Video Walkthrough & Demo
-👉 **[Ver Demo en Loom](TU_LINK_DE_LOOM)**
+👉 **[Ver Demo en Loom](https://www.loom.com/share/ab6296c05d6e4937ae9e429e08079945)**
 
 ---
 
