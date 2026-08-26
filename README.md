@@ -11,7 +11,7 @@
 
 ## 📹 Video Walkthrough & Demo
 
-[![Watch Demo](https://img.shields.io/badge/Loom-Ver%20Demo%20en%20V%C3%ADdeo%20(Walkthrough)-625DF5?style=for-the-badge&logo=loom&logoColor=white)](TU_ENLACE_DE_LOOM_AQUI)
+[![Watch Demo](https://img.shields.io/badge/Loom-Ver%20Demo%20en%20V%C3%ADdeo%20(Walkthrough)-625DF5?style=for-the-badge&logo=loom&logoColor=white)](https://www.loom.com/share/ab6296c05d6e4937ae9e429e08079945)
 
 ---
 
