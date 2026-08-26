@@ -1,0 +1,633 @@
+{
+  "name": "2- Selección y redacción de correos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "=5926661b-0b68-4105-ac5f-3e66ad54bb2c",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -128
+      ],
+      "id": "c8f3a4fc-3b7c-4550-887c-2505c8ed1413",
+      "name": "Webhook",
+      "webhookId": "5926661b-0b68-4105-ac5f-3e66ad54bb2c"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        336,
+        -32
+      ],
+      "id": "b8da8fec-13dc-4ea8-b577-2f4b2507f6c4",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -192
+      ],
+      "id": "c1c4a3ef-5204-43a5-bbdc-d56262b824cf",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const rawOutput = $('Redactor de correos').first().json.content.parts[0].text;\nconst cleaned = rawOutput.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nconst cuerpos = JSON.parse(cleaned);\n\nconst idioma = $json[\"Idioma\"] === \"ES\" ? \"es\" : \"en\";\nconst cuerpo = idioma === \"es\" ? cuerpos.cuerpo_es : cuerpos.cuerpo_en;\n\nconst cuerpoLimpio = cuerpo\n  .replace(/\\*\\*(.*?)\\*\\*/g, '$1')\n  .replace(/\\*(.*?)\\*/g, '$1')\n  .replace(/^\\s*[\\*\\-]\\s+/gm, '');\n\nconst contacto = ($json[\"Contacto\"] && $json[\"Contacto\"].trim() !== \"\") \n  ? $json[\"Contacto\"] \n  : $json[\"Proveedor\"];\n\nconst firmas = {\n  \"LD\": \"Leandro Da Silva\",\n  \"SM\": \"Santiago Medaglia\"\n};\nconst nombreFirma = firmas[$json[\"lead_user\"]] || $json[\"lead_user\"];\nconst despedida = idioma === \"es\" ? \"Saludos,\" : \"Kind regards,\";\nconst saludo = idioma === \"es\" ? `Estimado/a ${contacto},` : `Dear ${contacto},`;\n\nconst linksImagenes = [];\nif ($json[\"lead_foto_maquina\"] && $json[\"lead_foto_maquina\"] !== \"Sin imagen\") {\n  linksImagenes.push(idioma === \"es\" \n    ? `<p>Foto máquina: <a href=\"${$json[\"lead_foto_maquina\"]}\">Ver imagen</a></p>`\n    : `<p>Machine photo: <a href=\"${$json[\"lead_foto_maquina\"]}\">View image</a></p>`);\n}\nif ($json[\"lead_foto_pieza\"] && $json[\"lead_foto_pieza\"] !== \"Sin imagen\") {\n  linksImagenes.push(idioma === \"es\"\n    ? `<p>Foto pieza: <a href=\"${$json[\"lead_foto_pieza\"]}\">Ver imagen</a></p>`\n    : `<p>Part photo: <a href=\"${$json[\"lead_foto_pieza\"]}\">View image</a></p>`);\n}\nif ($json[\"lead_foto_sin_identificar\"] && $json[\"lead_foto_sin_identificar\"] !== \"Sin imagen\") {\n  linksImagenes.push(idioma === \"es\"\n    ? `<p>Foto de referencia: <a href=\"${$json[\"lead_foto_sin_identificar\"]}\">Ver imagen</a></p>`\n    : `<p>Reference photo: <a href=\"${$json[\"lead_foto_sin_identificar\"]}\">View image</a></p>`);\n}\n\nconst seccionImagenes = linksImagenes.length > 0 \n  ? `<p><br><strong>${idioma === \"es\" ? \"Imágenes de referencia:\" : \"Reference images:\"}</strong></p>${linksImagenes.join(\"\")}` \n  : \"\";\n\nconst parrafos = cuerpoLimpio\n  .split(/\\n{2,}/)\n  .map(p => `<p>${p.replace(/\\n/g, '<br>')}</p>`)\n  .join('');\n\nconst emailHtml = `<p>${saludo}</p>${parrafos}${seccionImagenes}<p><br>${despedida}</p><p><strong>${nombreFirma}</strong></p>`;\n\nreturn { json: { ...$json, email_body: emailHtml } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        128
+      ],
+      "id": "4ec92476-5d84-4c50-ba73-3f2db347c660",
+      "name": "Armar correo"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=={{ \n\"Genera dos versiones del cuerpo de un correo de solicitud de cotización (SIN saludo, SIN asunto, SIN firma, SIN despedida).\\n\\n\" +\n\"Piezas solicitadas: \" + $('Filtro de proveedores').first().json.lead_desc + \"\\n\" +\n\"Marca: \" + $('Filtro de proveedores').first().json.lead_marca + \"\\n\" +\n($('Filtro de proveedores').first().json.lead_datos_maquina && $('Filtro de proveedores').first().json.lead_datos_maquina !== \"Sin información\" ? \"Datos de máquina: \" + $('Filtro de proveedores').first().json.lead_datos_maquina + \"\\n\" : \"\") +\n($('Filtro de proveedores').first().json.lead_foto_pieza && $('Filtro de proveedores').first().json.lead_foto_pieza !== \"Sin imagen\" ? \"Se adjuntan imágenes de referencia.\\n\" : \"\") +\n($('Filtro de proveedores').first().json.lead_flete && $('Filtro de proveedores').first().json.lead_flete !== \"\" && $('Filtro de proveedores').first().json.lead_flete !== \"FOB\" ? \"Agregá en un párrafo separado al final del cuerpo: solicitar precio de flete a \" + $('Filtro de proveedores').first().json.lead_flete + \".\\n\" : \"\") +\n($('Filtro de proveedores').first().json.lead_flete === \"FOB\" ? \"Agregá en un párrafo separado al final del cuerpo: solicitar precio FOB e incluir dimensiones y peso del paquete.\\n\" : \"\") +\n\"\\nDevolvé ÚNICAMENTE un objeto JSON válido, sin markdown, sin explicaciones:\\n{\\\"cuerpo_en\\\": \\\"...\\\", \\\"cuerpo_es\\\": \\\"...\\\"}\\n\\nAmbas versiones deben:\\n- Comenzar con una frase inicial cordial y breve como párrafo separado\\n- Luego en un párrafo separado, incluir la solicitud con las piezas y marca\\n- Si hay datos de máquina, incluirlos en otro párrafo separado\\n- Si hay flete, incluirlo en otro párrafo separado al final\\n- Pedir precio y disponibilidad\\n- Ser concisas y profesionales\\n- NO usar markdown, asteriscos, negritas ni viñetas\\n- Separar cada idea en párrafos distintos usando doble salto de línea (\\\\n\\\\n) entre párrafos\\n- No incluir despedida ni firma\"\n}}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        -192
+      ],
+      "id": "411290a0-34b7-4da6-9f1c-a892c1bc4097",
+      "name": "Redactor de correos",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Eif7GrbyLFBZ45lK",
+          "name": "Google Gemini(PaLM) Api account 89"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ \"Quotation Request-\" + $json[\"lead_user\"] + \"-\" + $json[\"lead_ref\"] + \"-\" + $json[\"lead_desc\"] }}",
+        "emailType": "html",
+        "message": "={{ $json[\"email_body\"] }}",
+        "options": {
+          "sendTo": "={{ $json[\"Email\"] }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        128
+      ],
+      "id": "3f6f0cdf-c3d7-49cf-bd96-9f3e3c7e3e7d",
+      "name": "Borrador",
+      "webhookId": "0206a3af-9b88-4935-8101-b10c57efbb97",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5w0MmlZXdCp6eM9y",
+          "name": "Gmail account 66"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Webhook').first().json.body.numero_fila_excel }}",
+            "Estado": "Borradores generados"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Fecha de recepción",
+              "displayName": "Fecha de recepción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Descripción",
+              "displayName": "Descripción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Marca",
+              "displayName": "Marca",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Datos maquina",
+              "displayName": "Datos maquina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Foto pieza",
+              "displayName": "Foto pieza",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Foto Maquina",
+              "displayName": "Foto Maquina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Plazo",
+              "displayName": "Plazo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Foto sin identificar",
+              "displayName": "Foto sin identificar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Flete",
+              "displayName": "Flete",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Responsable",
+              "displayName": "Responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Referencia",
+              "displayName": "Referencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Generar correos",
+              "displayName": "Generar correos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        -16
+      ],
+      "id": "d5b4eb17-d8da-4e87-88b4-a02591029a1a",
+      "name": "Actualiza estado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0",
+          "mode": "list",
+          "cachedResultName": "Seguimiento de proveedores",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Asunto": "= {{ \"Quotation Request-\" + $('Armar correo').item.json.lead_user + \"-\" + $('Armar correo').item.json.lead_ref + \"-\" + $('Armar correo').item.json.lead_desc }}",
+            "Email proveedor": "={{ $('Armar correo').item.json.Email }}",
+            "Responsable": "={{ $('Armar correo').item.json.lead_user }}",
+            "Idioma": "={{ $('Armar correo').item.json.Idioma }}",
+            "ID Borrador": "={{ $json.id }}",
+            "Thread ID": "={{ $json.message.threadId }}",
+            "Fecha envío": "={{ $now.setZone('America/Montevideo').toFormat('dd/MM/yyyy HH:mm') }}",
+            "Estado": "Pendiente"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ID Borrador",
+              "displayName": "ID Borrador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Thread ID",
+              "displayName": "Thread ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email proveedor",
+              "displayName": "Email proveedor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Responsable",
+              "displayName": "Responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Idioma",
+              "displayName": "Idioma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha envío",
+              "displayName": "Fecha envío",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha recordatorio 1",
+              "displayName": "Fecha recordatorio 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha recordatorio 2",
+              "displayName": "Fecha recordatorio 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        128
+      ],
+      "id": "848c5548-bfb7-4759-8f21-cdf83982190e",
+      "name": "Registro en Seguimiento de proveedores",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1L2Ap9zmLf7pbXqsZxD8X-lWcQ3sDU0xLU5KpmwjuOck",
+          "mode": "list",
+          "cachedResultName": "Proveedores",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L2Ap9zmLf7pbXqsZxD8X-lWcQ3sDU0xLU5KpmwjuOck/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1L2Ap9zmLf7pbXqsZxD8X-lWcQ3sDU0xLU5KpmwjuOck/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -64,
+        -128
+      ],
+      "id": "d22189c2-cd3d-4b67-b50a-f4d34f5ac0e6",
+      "name": "Proveedores",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $('Webhook').first().json.body;\nconst marcaRaw = (webhook[\"Marca\"] || \"\").toString().toLowerCase().trim();\n\nconst resultados = [];\n\nfor (const item of $input.all()) {\n  const proveedor = item.json;\n  \n  const marcasProveedor = (proveedor[\"Marcas\"] || \"\")\n    .toString()\n    .toLowerCase()\n    .split(/[,;]/)\n    .map(m => m.trim().replace(/\\.$/, \"\"))\n    .filter(m => m !== \"\");\n\n  const coincide = marcasProveedor.some(mp => mp.includes(marcaRaw));\n\n  if (marcaRaw !== \"\" && coincide) {\n    resultados.push({\n      json: {\n        ...proveedor,\n        lead_marca: webhook[\"Marca\"],\n        lead_desc: webhook[\"Descripción\"],\n        lead_ref: webhook[\"Referencia\"],\n        lead_user: webhook[\"Responsable\"],\n        lead_cliente: webhook[\"Cliente\"],\n        lead_plazo: webhook[\"Plazo\"],\n        lead_datos_maquina: webhook[\"Datos maquina\"],\n        lead_foto_pieza: webhook[\"Foto pieza\"],\n        lead_foto_maquina: webhook[\"Foto Maquina\"],\n        lead_foto_sin_identificar: webhook[\"Foto sin identificar\"],\n        lead_flete: webhook[\"Flete\"]\n      }\n    });\n  }\n}\n\nreturn resultados;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -128
+      ],
+      "id": "4f828ed0-cae7-46b4-b2f2-f15405b32af1",
+      "name": "Filtro de proveedores"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Proveedores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Actualiza estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Armar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Redactor de correos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar correo": {
+      "main": [
+        [
+          {
+            "node": "Borrador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactor de correos": {
+      "main": [
+        []
+      ]
+    },
+    "Borrador": {
+      "main": [
+        [
+          {
+            "node": "Registro en Seguimiento de proveedores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registro en Seguimiento de proveedores": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proveedores": {
+      "main": [
+        [
+          {
+            "node": "Filtro de proveedores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro de proveedores": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3e7fd555-5854-4d5b-b20e-b44c8a543d52",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9598d86f4fec5d86581d704e57de784610b047bdff7f1a4692fc2822a9678fa1"
+  },
+  "nodeGroups": [],
+  "id": "nrUHjNz18yK1ERdS",
+  "tags": []
+}

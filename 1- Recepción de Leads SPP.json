@@ -1,0 +1,824 @@
+{
+  "name": "1- Recepción de Leads SPP",
+  "nodes": [
+    {
+      "parameters": {
+        "chatId": "={{ $('Empaquetador de informacion').item.json.chatId }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        32
+      ],
+      "id": "18bba917-0bfe-4665-add7-fedbb13cac48",
+      "name": "Send a text message",
+      "webhookId": "16ade718-024e-4e05-935c-bf9176d1c3d6",
+      "credentials": {
+        "telegramApi": {
+          "id": "fag28vSxsa1mHKfW",
+          "name": "Telegram account 84"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=={{ $json.mensajeUnido }}",
+        "options": {
+          "systemMessage": "👤 ROL Y PERSONALIDAD\nEres el Asistente de Recepción de Leads de SPP, especializado en repuestos e insumos industriales.\nTu único trabajo es capturar datos de cotización y registrarlos en Google Sheets con la aprobación del vendedor.\nTono: directo, cordial y sin rodeos. Podés responder un saludo o un agradecimiento en una línea, pero volvés inmediatamente a la tarea.\nFuera de tema: si el vendedor pregunta precios, disponibilidad u otras consultas comerciales, respondé: \"Eso no está en mi alcance, yo solo registro pedidos. ¿Seguimos con el lead?\"\n\n🎯 OBJETIVO\nCada conversación debe terminar con un registro confirmado en Google Sheets.\nNo cierres la sesión hasta que el vendedor haya aprobado el resumen y el registro esté hecho.\n\n🛠️ FLUJO DE TRABAJO — seguí estos pasos en orden\nPASO 1 — RECEPCIÓN\nProcesá texto y audios en cuanto lleguen, sin introducción.\nSi el mensaje es solo un saludo, presentate en una sola línea y pedí los datos.\n\nPASO 2 — EXTRACCIÓN\nDe todo lo recibido, extraé:\n\nCliente — nombre de la empresa o persona.\n\nDescripción — piezas, con cantidad y número de parte si los hay. Formato (multilínea): [cantidad] x [descripción] [número de parte]\n\nMarca — puede venir abreviada (CAT, JD, CASE, VOLVO, etc.). Reconocé variantes.\n\nPlazo — fecha o urgencia de entrega.\n\nDatos máquina — texto extraído de la chapa.\n\nFoto máquina — URL de la foto de la chapa de la máquina.\n\nFoto pieza — URL de la foto del repuesto.\n\n--- REGLAS PARA IMÁGENES PRE-PROCESADAS ---\nSi recibís la etiqueta [FOTO DE MÁQUINA RECIBIDA]:\nUsá \"Datos extraídos\" para rellenar tu campo \"Datos máquina\".\nGuardá la \"URL de la foto\" EXCLUSIVAMENTE en \"Foto máquina\".\n\nSi recibís la etiqueta [FOTO DE PIEZA RECIBIDA]:\nAgregá la \"Pieza detectada\" a tu lista de \"Descripción\" de piezas.\nGuardá la \"URL de la foto\" EXCLUSIVAMENTE en \"Foto pieza\".\n\nSi recibís la etiqueta [FOTO NO IDENTIFICADA]:\nPreguntale al vendedor: \"La foto no se lee bien, ¿me confirmás si es la chapa de la máquina o la pieza, o me pasás los números escritos?\"\nSegún su respuesta, guardá la URL en \"Foto máquina\" o \"Foto pieza\".\n--- FIN REGLAS DE IMAGEN ---\n\nPASO 3 — PREGUNTAS POR DATOS FALTANTES (RECOLECCIÓN EXHAUSTIVA)\nTu deber es intentar conseguir TODOS los datos faltantes.\nSi falta algún dato, pedíselo al vendedor usando DIRECTAMENTE una lista, sin saludos ni introducciones largas.\n\nDatos INDISPENSABLES que debes preguntar por separado antes de los COMPLEMENTARIOS: Cliente, Marca, Plazo. \n\nDatos COMPLEMENTARIOS — preguntá SIEMPRE por estos antes de mostrar el resumen, aunque tengas los indispensables:\n- Número de parte (si no viene en la descripción)\n- Foto de la chapa de la máquina o datos de máquina (modelo, serie, año)\n- Foto de la pieza\n\nHacelo en una sola línea informal.\nEjemplo: \"¿Tenés el número de parte, alguna foto de la chapa o de la pieza?\"\n\nREGLA DE ORDEN ESTRICTO: Primero preguntá por los datos complementarios en un mensaje separado y esperá la respuesta del vendedor. NUNCA muestres el resumen en el mismo mensaje donde preguntás por las fotos. El resumen solo aparece en el PASO 4, después de recibir la respuesta del vendedor.\n\nREGLA DE OMISIÓN: Si el vendedor responde que no tiene ninguno de estos datos, avanzá al resumen sin volver a pedirlos.\n\nPASO 4 — RESUMEN Y CONFIRMACIÓN\nSolo cuando tengas todos los datos INDISPENSABLES (Cliente, Marca, Plazo) y hayas preguntado por los complementarios, mostrá el resumen estructurado y preguntá: \"¿Lo registro?\".\n\nFormato del resumen:\nCliente: [valor]\nPiezas: [lista multilínea]\nMarca: [valor]\nPlazo: [valor]\nMáquina: [valor o \"Sin información\"]\nFoto máquina: URL foto maquina\nFoto pieza: URL foto pieza\n\nSi el vendedor pide un cambio: corregí el dato y mostrá el resumen actualizado.\n\nPASO 5 — REGISTRO\nSolo cuando el vendedor confirme (\"sí\", \"dale\", \"ok\", \"correcto\"), ejecutá la herramienta de Google Sheets. Confirmá en una línea: \"Listo, lead registrado.\"\n\n📊 MAPEO DE COLUMNAS (herramienta Google Sheets)\nCliente        → Cliente\nDescripción    → lista de piezas\nMarca          → Marca\nDatos máquina  → texto extraído, o \"Sin información\"\nFoto máquina   → URL de Drive, o \"Sin imagen\"\nFoto pieza     → URL de Drive, o \"Sin imagen\"\nPlazo          → Plazo\n\n⚠️ RESTRICCIONES TÉCNICAS\n— NUNCA menciones las etiquetas [FOTO DE MÁQUINA RECIBIDA], etc.\n— No inventes datos. Si no lo dijeron, no lo pongas.\n— No registres sin confirmación explícita del vendedor.\n— En el resumen y en cualquier mensaje, usá guion (-) en lugar de barra vertical (|) para separar datos. Nunca uses los caracteres |, <, >, & en tus respuestas.",
+          "passthroughBinaryImages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1248,
+        32
+      ],
+      "id": "eabfa991-5fba-4af8-ba6a-e5947cbe1465",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.chatId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        256
+      ],
+      "id": "78d6ffb6-5ae6-4acd-8b78-525afbd1153f",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Wu27TkRX3A5s9nbg4sGNOXK-nAYmNxD9m9dTMP6pF1M/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Cliente": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Cliente', ``, 'string') }}",
+            "Descripción": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Descripci_n', ``, 'string') }}",
+            "Marca": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Marca', ``, 'string') }}",
+            "Plazo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Plazo', ``, 'string') }}",
+            "Datos maquina": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Datos_maquina', ``, 'string') }}",
+            "Foto pieza": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Foto_pieza', ``, 'string') }}",
+            "Fecha de recepción": "={{ $now.setZone('America/Montevideo').toFormat('dd/MM/yyyy HH:mm') }}",
+            "Foto Maquina": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Foto_Maquina', ``, 'string') }}",
+            "Foto sin identificar": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Foto_sin_identificar', ``, 'string') }}",
+            "Estado": "Pendiente"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha de recepción",
+              "displayName": "Fecha de recepción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Descripción",
+              "displayName": "Descripción",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Marca",
+              "displayName": "Marca",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Datos maquina",
+              "displayName": "Datos maquina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Foto pieza",
+              "displayName": "Foto pieza",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Foto Maquina",
+              "displayName": "Foto Maquina",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plazo",
+              "displayName": "Plazo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Foto sin identificar",
+              "displayName": "Foto sin identificar",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Flete",
+              "displayName": "Flete",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Responsable",
+              "displayName": "Responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Referencia",
+              "displayName": "Referencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Generar correos",
+              "displayName": "Generar correos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1504,
+        240
+      ],
+      "id": "2cc494c4-adbe-4119-9285-ae999f34df35",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        32
+      ],
+      "id": "ff56454c-a72a-43ee-83cf-b8f1596b1e22",
+      "name": "Telegram Trigger",
+      "webhookId": "b8072c3c-7505-480f-ae49-bd559c5f5966",
+      "credentials": {
+        "telegramApi": {
+          "id": "fag28vSxsa1mHKfW",
+          "name": "Telegram account 84"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=foto_{{ $('Telegram Trigger').item.json.message.message_id }}.jpg",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "14I9h2cO_a4nAtg1JWWzr4qOhl5Jxr5-y",
+          "mode": "list",
+          "cachedResultName": "Fotos Leads SPP",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/14I9h2cO_a4nAtg1JWWzr4qOhl5Jxr5-y"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -128,
+        -208
+      ],
+      "id": "74da98c0-2070-4b84-a7e9-adf103a088c0",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "vwf0BcLhvkXwgM2t",
+          "name": "Google Drive account 48"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "55479a4c-2d9c-4bbd-85b0-6a781f4a2005"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1a0478da-e773-420a-b824-5111f75ededf",
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -432,
+        16
+      ],
+      "id": "b71b2274-c758-41b6-b3d6-cda8d2119691",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        32
+      ],
+      "id": "c01a2ed1-09f6-46da-949b-78306974c3ac",
+      "name": "Get a file",
+      "webhookId": "9d2ca9f4-5fdc-4b38-a289-1fc835ac64d4",
+      "credentials": {
+        "telegramApi": {
+          "id": "fag28vSxsa1mHKfW",
+          "name": "Telegram account 84"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData(\"global\");\n\n// Buscamos quién mandó el mensaje usando .first() para evitar errores\nconst telegramData = $('Telegram Trigger').first().json.message; \nconst chatId = telegramData.chat.id;\n\n// Tomamos el texto que la IA acaba de transcribir de forma segura\nconst textoTranscrito = \"[Nota de voz transcrita]: \" + $input.first().json.text; \n\nif (!staticData[chatId]) {\n    staticData[chatId] = { mensajes: [], imagenes: [], ultimaHora: 0 };\n}\n\n// Lo guardamos en la memoria secreta\nstaticData[chatId].mensajes.push(textoTranscrito);\nconst horaActual = new Date().getTime();\nstaticData[chatId].ultimaHora = horaActual;\n\nreturn {\n    chatId: chatId,\n    miHora: horaActual\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        32
+      ],
+      "id": "3ffc18a0-31e3-4f91-85c1-eae1e7b46e57",
+      "name": "Memoria temporal audio"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData(\"global\");\n\n// 1. Chat ID seguro\nlet chatId;\ntry {\n  chatId = $('Telegram Trigger').first().json.message.chat.id;\n} catch (e) {\n  chatId = $json.message?.chat?.id || $('Telegram Trigger').first().json.chat?.id;\n}\n\n// 2. Extraemos el JSON de la nueva estructura de Gemini 2.5\nlet geminiRaw = \"\";\ntry {\n  // Buscamos en la ruta específica de Gemini\n  geminiRaw = $json.content.parts[0].text;\n} catch (e) {\n  // Por si n8n lo envuelve en un array extra\n  geminiRaw = $json[0].content.parts[0].text;\n}\n\n// Limpiamos cualquier rastro de markdown por si acaso y lo convertimos a Objeto\ngeminiRaw = geminiRaw.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\nconst visionData = JSON.parse(geminiRaw);\n\n// 3. Texto original del vendedor (si mandó un mensajito junto con la foto)\nlet textoVendedor = \"\";\ntry {\n  textoVendedor = $('Telegram Trigger').first().json.message.caption || \"\";\n} catch(e) {}\n\n// 4. Armamos la frase perfecta para el Agente Principal\nlet mensajeParaAgente = \"\";\n\nif (visionData.tipo === \"maquina\") {\n    mensajeParaAgente = `[FOTO DE MÁQUINA RECIBIDA] Texto del vendedor: \"${textoVendedor}\". Datos extraídos: ${visionData.datos_maquina}. URL de la foto: ${visionData.foto_url}`;\n} \nelse if (visionData.tipo === \"pieza\") {\n    mensajeParaAgente = `[FOTO DE PIEZA RECIBIDA] Texto del vendedor: \"${textoVendedor}\". Pieza detectada: ${visionData.descripcion_pieza}. URL de la foto: ${visionData.foto_url}`;\n} \nelse {\n    mensajeParaAgente = `[FOTO NO IDENTIFICADA] Texto del vendedor: \"${textoVendedor}\". URL de la foto: ${visionData.foto_url}`;\n}\n\n// 5. Guardamos en la memoria temporal\nif (!staticData[chatId]) {\n  staticData[chatId] = { mensajes: [], imagenes: [], ultimaHora: 0 };\n}\n\nstaticData[chatId].mensajes.push(mensajeParaAgente);\nconst horaActual = new Date().getTime();\nstaticData[chatId].ultimaHora = horaActual;\n\nreturn [{\n  json: { chatId: chatId, miHora: horaActual }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -208
+      ],
+      "id": "0614a510-7bf3-4d4c-bdf7-d77f0b767ef0",
+      "name": "Memoria temporal imagen"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData(\"global\");\nconst chatId = $json.message.chat.id;\nconst text = $json.message.text || \"\";\n\n// Ahora inicializamos también un espacio para \"imagenes\"\nif (!staticData[chatId]) {\n    staticData[chatId] = { mensajes: [], imagenes: [], ultimaHora: 0 };\n}\n\nstaticData[chatId].mensajes.push(text);\nconst horaActual = new Date().getTime();\nstaticData[chatId].ultimaHora = horaActual;\n\nreturn {\n    chatId: chatId,\n    miHora: horaActual\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        272
+      ],
+      "id": "653bd49b-3b08-491b-81e2-ecbd2dc98570",
+      "name": "Memoria temporal texto"
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData(\"global\");\nconst chatId = $json.chatId;\nconst miHora = $json.miHora;\n\n// 1. Validación de seguridad vital: Evita el error \"undefined\"\nif (!staticData[chatId]) {\n    return []; \n}\n\nconst datosActuales = staticData[chatId];\n\n// 2. Control de tiempo: Si entró un mensaje más nuevo, este hilo se apaga\nif (datosActuales.ultimaHora !== miHora) {\n    return []; \n}\n\n// 3. Empaquetamos todo el texto (ahora las descripciones de fotos vienen aquí)\nconst textoFinal = datosActuales.mensajes.join(\"\\n\\n\");\n\n// 4. Limpiamos la memoria para que el próximo pedido empiece en blanco\ndelete staticData[chatId]; \n\n// 5. Retornamos el paquete al Agente Principal (sin binarios, solo texto)\nreturn [{\n    json: {\n        chatId: chatId,\n        mensajeUnido: textoFinal\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        32
+      ],
+      "id": "5f57b983-f205-49ba-b83a-3d649328b1b6",
+      "name": "Empaquetador de informacion"
+    },
+    {
+      "parameters": {
+        "content": "## Recepción y clasificación\n\n",
+        "height": 688,
+        "width": 400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -672,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "88b58cd8-8b9f-4ad3-ae33-1efcc7f978be",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Traducción\n",
+        "height": 736,
+        "width": 836,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -224,
+        -304
+      ],
+      "typeVersion": 1,
+      "id": "39ff47b2-7d45-4efd-9253-24b72dbc8328",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Espera y agrupación\n",
+        "height": 544,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        656,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "e3ee237f-6901-42c5-b623-079113f3cd1b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Procesamiento y registro de la información\n",
+        "height": 544,
+        "width": 608,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1168,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "37895c1b-8d00-44a6-ab25-56689e5821fd",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=Eres un clasificador de imágenes industriales de ALTA PRECISIÓN. Analiza la imagen y devuelve ÚNICAMENTE un objeto JSON válido. Cero texto adicional, cero explicaciones, cero bloques markdown (NO uses ```).\n\nREGLA DE ORO 1 (TOLERANCIA CERO A LA ADIVINANZA): Tienes ESTRICTAMENTE PROHIBIDO adivinar, deducir, o autocompletar caracteres borrosos. Si un número, letra o palabra no es 100% nítido (por ejemplo, si dudas si es un 9 o una H, o un 8 o un 3), DEBES ABORTAR y clasificar la imagen inmediatamente como CASO 3. Es preferible rechazar la imagen que inventar un dato falso. Actúa como un escáner óptico inflexible.\n\nREGLA DE ORO 2 (CONTEXTO VISUAL): Si la imagen muestra estanterías de almacén, pasillos, racks de inventario o etiquetas pegadas en estantes vacíos, clasifícalo como CASO 3, sin importar qué texto leas.\n\nCASO 1 — Datos de máquina:\nLa imagen muestra CLARAMENTE una placa de identificación técnica pegada sobre una máquina. Textos 100% nítidos.\nDevuelve exactamente:\n{\n  \"tipo\": \"maquina\", \n  \"datos_maquina\": \"Marca: [x] | Modelo: [y] | Serie: [z] | Año: [w]\", \n  \"foto_url\": \"{{ \"[https://drive.google.com/uc?export=view&id=](https://drive.google.com/uc?export=view&id=)\" + $('Upload file').first().json.id }}\"\n}\n\nCASO 2 — Pieza, repuesto o captura de catálogo:\nLa imagen muestra UNA pieza física, su caja, o es una captura de pantalla/manual con texto 100% nítido.\nTranscribe EXACTAMENTE lo que ves. No corrijas ni asumas palabras.\nDevuelve exactamente:\n{\n  \"tipo\": \"pieza\", \n  \"descripcion_pieza\": \"1 x [TRANSCRIPCIÓN EXACTA]\", \n  \"foto_url\": \"{{ \"[https://drive.google.com/uc?export=view&id=](https://drive.google.com/uc?export=view&id=)\" + $('Upload file').first().json.id }}\"\n}\n\nCASO 3 — Indefinido, Ilegible o No Válido:\nEl texto está borroso, dudoso, pixelado, o la imagen es de una estantería/almacén. Ante la MÁS MÍNIMA DUDA de legibilidad, usa este caso.\nDevuelve exactamente:\n{\n  \"tipo\": \"indefinido\", \n  \"foto_url\": \"{{ \"[https://drive.google.com/uc?export=view&id=](https://drive.google.com/uc?export=view&id=)\" + $('Upload file').first().json.id }}\"\n}",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        -208
+      ],
+      "id": "25d337dd-9deb-475a-9a9c-5714a612edb8",
+      "name": "Analyze an image1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FFbI5SxJ7AkDc1o1",
+          "name": "Google Gemini(PaLM) Api account 125"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Iteramos sobre la respuesta actual (los datos que devolvió Google Drive)\nfor (const item of $input.all()) {\n    \n    try {\n        // Vamos al nodo donde REALMENTE entró la foto: el Trigger de Telegram\n        const imagenOriginal = $('Telegram Trigger').first().binary;\n        \n        // Si la imagen existe, se la volvemos a pegar al paquete actual\n        if (imagenOriginal) {\n            item.binary = imagenOriginal;\n        }\n    } catch(e) {\n        // Si hay algún problema, no colapsamos, seguimos adelante silenciosamente\n    }\n}\n\n// Pasamos el paquete completo (JSON de Drive + Binario rescatado) a Gemini\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -208
+      ],
+      "id": "c4a03979-cfd4-4bb3-9452-0558f4dab7b2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        240
+      ],
+      "id": "0e605317-aab4-4317-bb3b-46ba9f7e1f5e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FFbI5SxJ7AkDc1o1",
+          "name": "Google Gemini(PaLM) Api account 125"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        32
+      ],
+      "id": "0f9827d8-993a-439e-bfdd-2c5022632da7",
+      "name": "Transcribe a recording1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Eif7GrbyLFBZ45lK",
+          "name": "Google Gemini(PaLM) Api account 89"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        32
+      ],
+      "id": "95db8d40-5736-4058-b199-bfa8b2431a8c",
+      "name": "Wait",
+      "webhookId": "ba349813-f0b5-4a3e-af1d-c3cfc9a1fe0a"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Memoria temporal texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria temporal audio": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria temporal imagen": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria temporal texto": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empaquetador de informacion": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image1": {
+      "main": [
+        [
+          {
+            "node": "Memoria temporal imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording1": {
+      "main": [
+        [
+          {
+            "node": "Memoria temporal audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Empaquetador de informacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "dbcb1ac3-13c8-4f1e-87c2-cf0413d3e039",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9598d86f4fec5d86581d704e57de784610b047bdff7f1a4692fc2822a9678fa1"
+  },
+  "nodeGroups": [],
+  "id": "6nU51IUtfuoEON0H",
+  "tags": []
+}

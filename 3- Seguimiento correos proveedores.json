@@ -1,0 +1,584 @@
+{
+  "name": "3- Seguimiento correos proveedores",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -112,
+        0
+      ],
+      "id": "dab594dd-f686-415d-a467-f49786ee6b9e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0",
+          "mode": "list",
+          "cachedResultName": "Seguimiento de proveedores",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        0
+      ],
+      "id": "5a4332d9-6e7a-415e-9321-48a85d98d244",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $json['Thread ID'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        0
+      ],
+      "id": "e2b92358-8ab7-4704-9310-31604adca222",
+      "name": "Get a thread",
+      "webhookId": "bb4dd23a-cc8c-414a-a43b-9043de522115",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5w0MmlZXdCp6eM9y",
+          "name": "Gmail account 66"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensajes = $json.messages || [];\nconst emailProveedor = ($json[\"Email proveedor\"] || \"\").toLowerCase().trim();\n\nif (!emailProveedor) {\n  return [{ json: { ...$json, respondio: false } }];\n}\n\nconst respondio = mensajes.some(msg => {\n  const fromRaw = (msg.From || msg.from || \n    msg.payload?.headers?.find(h => h.name === \"From\")?.value || \"\").toLowerCase();\n  return fromRaw.includes(emailProveedor);\n});\n\nreturn [{ json: { ...$json, respondio } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "4ad40d42-7885-4ffd-a52d-4e7bf6c1b24a",
+      "name": "Respondió?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d5d644e6-80e2-48bf-a1b1-a54fd1b21a9e",
+              "leftValue": "={{ $json.respondio }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        0
+      ],
+      "id": "18e07c8a-c4c7-48a8-95f8-426ad534a66d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ahora = new Date();\nconst filas = $input.all();\n\nconst pendientes24h = [];\nconst pendientes48h = [];\n\nconst parsearFecha = (raw) => {\n  if (!raw) return null;\n  const partes = raw.trim().split(' ');\n  const [dia, mes, anio] = partes[0].split('/');\n  const horaParts = (partes[1] || '00:00').split(':');\n  const hora = horaParts[0].padStart(2, '0');\n  const min = (horaParts[1] || '00').padStart(2, '0');\n  return new Date(`${anio}-${mes}-${dia}T${hora}:${min}:00`);\n};\n\nfor (const item of filas) {\n  const fila = item.json;\n  const estado = fila[\"Estado\"] || \"\";\n  const fechaEnvio = parsearFecha(fila[\"Fecha envío\"]);\n  const fechaRecordatorio1 = parsearFecha(fila[\"Fecha recordatorio 1\"]);\n\n  const horasDesdeEnvio = fechaEnvio ? (ahora - fechaEnvio) / (1000 * 60 * 60) : 0;\n  const horasDesdeRecordatorio1 = fechaRecordatorio1 ? (ahora - fechaRecordatorio1) / (1000 * 60 * 60) : 0;\n\n  if (estado === \"Pendiente\" && horasDesdeEnvio >= 24) {\n    pendientes24h.push({ json: { ...fila, accion: \"recordatorio_1\" } });\n  } else if (estado === \"Recordatorio 1 enviado\" && horasDesdeRecordatorio1 >= 24) {\n    pendientes48h.push({ json: { ...fila, accion: \"recordatorio_2\" } });\n  }\n}\n\nreturn [...pendientes24h, ...pendientes48h];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        0
+      ],
+      "id": "4b73007c-9ff2-4c21-b74d-47c51a33b907",
+      "name": "Clasificar filas"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0",
+          "mode": "list",
+          "cachedResultName": "Seguimiento de proveedores",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $('Clasificar filas').item.json.row_number }}",
+            "Fecha recordatorio 1": "={{ $('Clasificar filas').item.json.accion === \"recordatorio_1\" ? $now.setZone('America/Montevideo').toFormat('dd/MM/yyyy HH:mm') : $('Clasificar filas').item.json[\"Fecha recordatorio 1\"] }}",
+            "Fecha recordatorio 2": "={{ $('Clasificar filas').item.json.accion === \"recordatorio_2\" ? $now.setZone('America/Montevideo').toFormat('dd/MM/yyyy HH:mm') : $('Clasificar filas').item.json[\"Fecha recordatorio 2\"] }}",
+            "Estado": "={{ $('Clasificar filas').item.json.accion === \"recordatorio_1\" ? \"Recordatorio 1 enviado\" : \"Recordatorio 2 enviado\" }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "ID Borrador",
+              "displayName": "ID Borrador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Thread ID",
+              "displayName": "Thread ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Email proveedor",
+              "displayName": "Email proveedor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Responsable",
+              "displayName": "Responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Idioma",
+              "displayName": "Idioma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha envío",
+              "displayName": "Fecha envío",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha recordatorio 1",
+              "displayName": "Fecha recordatorio 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha recordatorio 2",
+              "displayName": "Fecha recordatorio 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "8480c4e3-ff28-46fe-a2c4-28aef6d2b604",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "reply",
+        "threadId": "={{ $('Get a thread').item.json.id }}",
+        "messageId": "={{ $('Get a thread').item.json.messages[$('Get a thread').item.json.messages.length - 1].id }}",
+        "emailType": "html",
+        "message": "={{ $('Clasificar filas').item.json.Idioma === \"ES\" \n  ? \"<p>Estimado/a,</p><p>Espero que se encuentre bien. Quería hacer un seguimiento de nuestra solicitud de cotización enviada anteriormente. ¿Han tenido oportunidad de revisarla?</p><p>Quedo a disposición para cualquier consulta.</p><p><br>Saludos,<br><strong>\" + ($('Clasificar filas').item.json.Responsable === \"LD\" ? \"Leandro Da Silva\" : \"Santiago Medaglia\") + \"</strong></p>\"\n  : \"<p>Dear,<p><p>Hope you are doing well. I wanted to follow up on the quotation request we sent previously. Have you had a chance to review it?</p><p>Please let me know if you need any additional information.</p><p><br>Kind regards,<br><strong>\" + ($('Clasificar filas').item.json.Responsable === \"LD\" ? \"Leandro Da Silva\" : \"Santiago Medaglia\") + \"</strong></p>\"\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        -96
+      ],
+      "id": "e3a65d71-f407-416d-a4e1-b125e2f0d0d3",
+      "name": "Reply to a message",
+      "webhookId": "a22a5212-06ed-4bf1-9851-38b65f824ed9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5w0MmlZXdCp6eM9y",
+          "name": "Gmail account 66"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0",
+          "mode": "list",
+          "cachedResultName": "Seguimiento de proveedores",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mjmiNqVuIOT5msY6ziJgvsU9qAIR1Zw3A567ketUIs0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Thread ID": "={{ $('Respondió?').item.json.messages[0].threadId }}",
+            "Estado": "Respuesta recibida"
+          },
+          "matchingColumns": [
+            "Thread ID"
+          ],
+          "schema": [
+            {
+              "id": "ID Borrador",
+              "displayName": "ID Borrador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Thread ID",
+              "displayName": "Thread ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email proveedor",
+              "displayName": "Email proveedor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Asunto",
+              "displayName": "Asunto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Responsable",
+              "displayName": "Responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Idioma",
+              "displayName": "Idioma",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha envío",
+              "displayName": "Fecha envío",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha recordatorio 1",
+              "displayName": "Fecha recordatorio 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha recordatorio 2",
+              "displayName": "Fecha recordatorio 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1152,
+        112
+      ],
+      "id": "3bda3a03-c8c3-4309-9de7-761603a3b3cf",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "kDwGMXaTAgpT1SzS",
+          "name": "Google Sheets account 62"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Clasificar filas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a thread": {
+      "main": [
+        [
+          {
+            "node": "Respondió?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respondió?": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar filas": {
+      "main": [
+        [
+          {
+            "node": "Get a thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply to a message": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9cb8a64f-7ec0-4c1d-8264-e6cc2c6bad97",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9598d86f4fec5d86581d704e57de784610b047bdff7f1a4692fc2822a9678fa1"
+  },
+  "nodeGroups": [],
+  "id": "4bENsIDq5nX5LK2X",
+  "tags": []
+}
